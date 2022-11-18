@@ -37,6 +37,13 @@ pragma solidity ^0.8.17;
 // Random lottery mint challange: startingIndex must be as much random as possible :)
 // - InterviewNft startingIndex generation is based on block hash obtained during first mint
 // - ChailinkVRF could be used to generate appropriate initial random number (https://docs.chain.link/vrf/v2/introduction)
+
+
+//Aleh: we need to add updateMetadata method, if we need to update some param or picture. Only Owner can call it.
+// As a reference BAYC contract can be used and the following resources:
+// https://etherscan.io/token/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d?a=31#code
+// https://boredapeyachtclub.com/#/provenance
+// https://medium.com/coinmonks/the-elegance-of-the-nft-provenance-hash-solution-823b39f99473
 contract InterviewNft is ERC721, Ownable {
 
     // Max supply of NFTs
@@ -63,6 +70,7 @@ contract InterviewNft is ERC721, Ownable {
         require(_holders[mintToAddress] == 0, "Single address can have 1 NFT");
         _holders[mintToAddress]++;
         uint256 tokenId = currentSupply;
+        //Aleh: this one should be called once.
         setStartingIndex();
         currentSupply++;
         _safeMint(mintToAddress, tokenId);
@@ -73,6 +81,7 @@ contract InterviewNft is ERC721, Ownable {
 
         string memory baseURI = _baseURI();
         string memory sequenceId;
+        //Aleh: it seems this logic is redundant
         sequenceId = Strings.toString((tokenId + startingIndex) % maxSupply);
         return string(abi.encodePacked(baseURI, sequenceId));
     }
