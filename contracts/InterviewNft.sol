@@ -1,6 +1,5 @@
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 pragma solidity ^0.8.17;
 
@@ -15,10 +14,10 @@ pragma solidity ^0.8.17;
 //
 // Restrictions:
 // - 1 NFT per 1 address
-// - transfer NFT only to owner or by owner
+// - transfer NFT only to contract owner or by contract owner
 //
 // Random lottery mint overview:
-// - mint process assigns next tokenId to minted NFT (0,1,2,...,maxSupply)
+// - mint process assigns next tokenId to minted NFT (0,1,2,..., maxSupply - 1)
 // - first mint generates startingIndex - random number from range 0 - maxSupply
 // - calculated tokenURI for tokenId uses startingIndex to generate randomized tokenURI id
 // Example:
@@ -38,7 +37,7 @@ pragma solidity ^0.8.17;
 // Random lottery mint challange: startingIndex must be as much random as possible :)
 // - InterviewNft startingIndex generation is based on block hash obtained during first mint
 // - ChailinkVRF could be used to generate appropriate initial random number (https://docs.chain.link/vrf/v2/introduction)
-contract BlockchainTechFamilyInterviewNFT is ERC721, Ownable {
+contract InterviewNft is ERC721, Ownable {
 
     // Max supply of NFTs
     uint256 public maxSupply;
@@ -47,29 +46,29 @@ contract BlockchainTechFamilyInterviewNFT is ERC721, Ownable {
     // Properties data endpoint base uri
     string public baseUri;
     // This is used to prove that properties data were unchanged, especially the order
-    uint256 public dataIntegrityHash;
+    string public dataIntegrityHash;
     // Internal variable for obtaining user NFT id
     uint256 public startingIndex;
-    //
+    // holders
     mapping(address => uint256) private _holders;
 
     constructor (uint256 maxSupply_, string memory baseUri_, string memory dataIntegrityHash_) ERC721('BlockchainTechFamilyInterviewNFT', 'BTFI')  {
         maxSupply = maxSupply_;
         baseUri = baseUri_;
-        dataIntegrityHash = dataIntegrityHash;
+        dataIntegrityHash = dataIntegrityHash_;
     }
 
     function mint(address mintToAddress) public onlyOwner {
         require(currentSupply < maxSupply, "Max supply already reached");
-        require(_holders[msg.sender] == 0, "Single address can have 1 NFT");
-        _holders[msg.sender]++;
+        require(_holders[mintToAddress] == 0, "Single address can have 1 NFT");
+        _holders[mintToAddress]++;
         uint256 tokenId = currentSupply;
         setStartingIndex();
         currentSupply++;
         _safeMint(mintToAddress, tokenId);
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override(ERC721) returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
         require(_exists(tokenId), "tokenId doesnt exist");
 
         string memory baseURI = _baseURI();
@@ -78,8 +77,8 @@ contract BlockchainTechFamilyInterviewNFT is ERC721, Ownable {
         return string(abi.encodePacked(baseURI, sequenceId));
     }
 
-    function setStartingIndex() private {
-        uint256 startingIndexBlock = block.number;
+    function setStartingIndex() private onlyOwner {
+        uint256 startingIndexBlock = block.number -1;
         startingIndex = uint(blockhash(startingIndexBlock)) % maxSupply;
         // Prevent default sequence
         if (startingIndex == 0) {
